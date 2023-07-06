@@ -3,12 +3,12 @@ using System.Linq;
 using System.Timers;
 using Automatica.Core.Base.IO;
 using Automatica.Core.EF.Models;
-using Automatica.Core.Rule;
+using Automatica.Core.Logic;
 using Microsoft.Extensions.Logging;
 
 namespace P3.Logic.Lightning.FlashingLights
 {
-    internal class FlashingLightsRule : Rule
+    internal class FlashingLightsLogic : Automatica.Core.Logic.Logic
     {
         private bool _currentState;
 
@@ -17,13 +17,13 @@ namespace P3.Logic.Lightning.FlashingLights
         
         private bool _timerRunning;
 
-        public FlashingLightsRule(IRuleContext context) : base(context)
+        public FlashingLightsLogic(ILogicContext context) : base(context)
         {
             _output = context.RuleInstance.RuleInterfaceInstance.SingleOrDefault(a =>
-                a.This2RuleInterfaceTemplate == FlashingLightsRuleFactory.Output);
+                a.This2RuleInterfaceTemplate == FlashingLightsLogicFactory.Output);
 
             var delay = context.RuleInstance.RuleInterfaceInstance.SingleOrDefault(a =>
-                               a.This2RuleInterfaceTemplate == FlashingLightsRuleFactory.Delay);
+                               a.This2RuleInterfaceTemplate == FlashingLightsLogicFactory.Delay);
 
             _timer = new Timer(delay.ValueInteger.Value);
             _timer.Elapsed += _timer_Elapsed;
@@ -35,27 +35,27 @@ namespace P3.Logic.Lightning.FlashingLights
 
             Context.Logger.LogInformation($"Reset light state to {setState}");
 
-            Context.Dispatcher.DispatchValue(new RuleOutputChanged(_output, !_currentState).Instance, setState);
+            Context.Dispatcher.DispatchValue(new LogicOutputChanged(_output, !_currentState).Instance, setState);
 
             _timer.Stop();
             _timerRunning = false;
         }
 
-        protected override IList<IRuleOutputChanged> InputValueChanged(RuleInterfaceInstance instance, IDispatchable source, object value)
+        protected override IList<ILogicOutputChanged> InputValueChanged(RuleInterfaceInstance instance, IDispatchable source, object value)
         {
-            if (instance.This2RuleInterfaceTemplate == FlashingLightsRuleFactory.Trigger && (value is true))
+            if (instance.This2RuleInterfaceTemplate == FlashingLightsLogicFactory.Trigger && (value is true))
             {
                 var setState = !_currentState;
 
                 Context.Logger.LogInformation($"Set light state to {setState}");
 
-                Context.Dispatcher.DispatchValue(new RuleOutputChanged(_output, _currentState).Instance, setState);
+                Context.Dispatcher.DispatchValue(new LogicOutputChanged(_output, _currentState).Instance, setState);
 
                 _currentState = setState;
                 _timerRunning = true;
                 _timer.Start();
             }
-            else if (instance.This2RuleInterfaceTemplate == FlashingLightsRuleFactory.State)
+            else if (instance.This2RuleInterfaceTemplate == FlashingLightsLogicFactory.State)
             {
                 if (!_timerRunning)
                 {
@@ -64,7 +64,7 @@ namespace P3.Logic.Lightning.FlashingLights
                 }
             }
 
-            return new List<IRuleOutputChanged>();
+            return new List<ILogicOutputChanged>();
         }
     }
 }
